@@ -31,6 +31,7 @@ from networkapi.api_pools.facade import get_or_create_healthcheck, save_server_p
 from networkapi.ip.models import IpEquipamento
 from networkapi.equipamento.models import Equipamento
 from networkapi.api_pools.facade import exec_script_check_poolmember_by_pool
+from networkapi.queue_manager import QueueManager
 from networkapi.requisicaovips.models import ServerPool, ServerPoolMember, \
     VipPortToPool
 from networkapi.api_pools.serializers import ServerPoolSerializer, HealthcheckSerializer, \
@@ -253,15 +254,20 @@ def delete(request):
 
         is_valid_list_int_greater_zero_param(ids)
 
+        q = QueueManager()
+
         for _id in ids:
             try:
                 server_pool = ServerPool.objects.get(id=_id)
+
+                pool_id = server_pool.id
 
                 if VipPortToPool.objects.filter(server_pool=_id):
                     raise exceptions.PoolConstraintVipException()
 
                 for server_pool_member in server_pool.serverpoolmember_set.all():
 
+                    member_id = server_pool_member.id
                     ipv4 = server_pool_member.ip
                     ipv6 = server_pool_member.ipv6
 
@@ -271,6 +277,8 @@ def delete(request):
 
                     server_pool_member.delete(request.user)
 
+                    q.append(member_id, 'pool_member', QueueManager.OPERATION_DELETE)
+
                     command = settings.POOL_REAL_REMOVE % (id_pool, id_ip, port_ip)
 
                     code, _, _ = exec_script(command)
@@ -279,9 +287,11 @@ def delete(request):
                         raise exceptions.ScriptDeletePoolException()
 
                 server_pool.delete(request.user)
+                q.append(pool_id, 'pool', QueueManager.OPERATION_DELETE)
 
             except ServerPool.DoesNotExist:
                 pass
+        q.send()
 
         return Response()
 
@@ -846,7 +856,7 @@ def save(request):
         list_server_pool_member = prepare_to_save_reals(ip_list_full, ports_reals, nome_equips, priorities, weight,
                                                         id_pool_member, id_equips)
         # Save reals
-        save_server_pool_member(request.user, sp, list_server_pool_member)
+        members = save_server_pool_member(request.user, sp, list_server_pool_member)
 
         # Check if someone is using the old healthcheck
         # If not, delete it to keep the database clean
@@ -854,6 +864,15 @@ def save(request):
             pools_using_healthcheck = ServerPool.objects.filter(healthcheck=old_healthcheck_id).count()
             if pools_using_healthcheck == 0:
                 Healthcheck.objects.get(id=old_healthcheck_id).delete(request.user)
+
+        q = QueueManager()
+
+        q.append(sp.id, 'pool', QueueManager.OPERATION_SAVE)
+
+        for spm in members:
+            q.append(spm.id, 'pool_member', QueueManager.OPERATION_SAVE)
+
+        q.send()
 
         return Response(status=status.HTTP_201_CREATED)
 

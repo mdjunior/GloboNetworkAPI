@@ -32,30 +32,42 @@ class QueueManager(object):
     OPERATION_DELETE = "delete"
 
     def __init__(self):
-        self.queue = list()
-        self.api_routing_key = getattr(settings, 'api_routing', None) or "networkapi_routing"
-        self.api_exchange = getattr(settings, 'api_exchange', None) or "networkapi_exchange"
-        self.connection_parameters = getattr(settings, 'connection_parameters', None) or pika.ConnectionParameters()
+        try:
+            self.queue = list()
+            self.api_routing_key = getattr(settings, 'api_routing', None) or "networkapi_routing"
+            self.api_exchange = getattr(settings, 'api_exchange', None) or "networkapi_exchange"
+            self.connection_parameters = getattr(settings, 'connection_parameters', None) or pika.ConnectionParameters()
+
+        except Exception, e:
+            log.error(e)
 
     def append(self, id, description, operation):
 
-        obj_to_queue = dict(id=id, description=description, operation=operation)
-        self.queue.append(obj_to_queue)
+        try:
+            obj_to_queue = dict(id=id, description=description, operation=operation)
+            self.queue.append(obj_to_queue)
+
+        except Exception, e:
+            log.error(e)
 
     def send(self):
 
-        connection = pika.BlockingConnection(self.connection_parameters)
-        channel = connection.channel()
-        channel.exchange_declare(exchange=self.api_exchange, type='topic')
+        try:
+            connection = pika.BlockingConnection(self.connection_parameters)
+            channel = connection.channel()
+            channel.exchange_declare(exchange=self.api_exchange, type='topic')
 
-        for message in self.queue:
+            for message in self.queue:
 
-            serialized_message = json.dumps(message, ensure_ascii=False)
+                serialized_message = json.dumps(message, ensure_ascii=False)
 
-            channel.basic_publish(
-                exchange=self.api_exchange,
-                routing_key=self.api_routing_key,
-                body=serialized_message
-            )
+                channel.basic_publish(
+                    exchange=self.api_exchange,
+                    routing_key=self.api_routing_key,
+                    body=serialized_message
+                )
 
-        connection.close()
+            connection.close()
+
+        except Exception, e:
+            log.error(e)
