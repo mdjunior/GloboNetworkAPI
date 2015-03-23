@@ -26,6 +26,8 @@ from networkapi.infrastructure.script_utils import exec_script, ScriptError
 from networkapi.infrastructure.xml_utils import loads, XMLError, dumps_networkapi
 from networkapi.interface.models import Interface, InterfaceError, InterfaceNotFoundError, InterfaceProtectedError
 from networkapi.log import Log
+from networkapi.queue_tools import queue_keys
+from networkapi.queue_tools.queue_manager import QueueManager
 from networkapi.rest import RestResource
 from networkapi.util import is_valid_int_greater_zero_param, is_valid_string_maxsize, is_valid_string_minsize
 from networkapi.vlan.models import TipoRede, NetworkTypeNotFoundError, Vlan, VlanNameDuplicatedError, \
@@ -401,12 +403,26 @@ class VlanResource(RestResource):
             map = dict()
             map['sucesso'] = success_map
 
+
+            # Send to Queue
+            queue_manager = QueueManager()
+
+            obj_to_queue = dict(
+                id=vlan.id,
+                description=queue_keys.VLAN_CRIAR,
+                operation=QueueManager.OPERATION_SAVE
+            )
+
+            queue_manager.append(obj_to_queue)
+            queue_manager.send()
+
             return self.response(dumps_networkapi(map))
         else:
             return self.response_error(2, stdout + stderr)
 
     def add_remove_check_list_vlan_trunk(self, user, networkapi_map, vlan_id, operation):
 
+        OPERATION_REMOVE = "del"
         equipment_map = networkapi_map.get('equipamento')
         if equipment_map is None:
             return self.response_error(105)
@@ -487,6 +503,19 @@ class VlanResource(RestResource):
                 success_map['codigo'] = '%04d' % code
                 success_map['descricao'] = {'stdout': stdout, 'stderr': stderr}
                 map['sucesso'] = success_map
+
+                if operation == OPERATION_REMOVE:
+                    # Send to Queue
+                    queue_manager = QueueManager()
+
+                    obj_to_queue = dict(
+                        id=vlan.id,
+                        description=queue_keys.VLAN_REMOVE,
+                        operation=QueueManager.OPERATION_DELETE
+                    )
+
+                    queue_manager.append(obj_to_queue)
+                    queue_manager.send()
 
                 return self.response(dumps_networkapi(map))
             else:
