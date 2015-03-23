@@ -26,6 +26,9 @@ log = Log(__name__)
 
 
 class QueueManager(object):
+    """
+        Object to manager objects sent to queue
+    """
 
     OPERATION_SAVE = "insert"
     OPERATION_UPDATE = "update"
@@ -33,12 +36,14 @@ class QueueManager(object):
 
     def __init__(self):
         try:
+
             self.queue = list()
             self.api_routing_key = getattr(settings, 'api_routing', None) or "networkapi_routing"
             self.api_exchange = getattr(settings, 'api_exchange', None) or "networkapi_exchange"
             self.connection_parameters = getattr(settings, 'connection_parameters', None) or pika.ConnectionParameters()
 
         except Exception, e:
+            log.error(u"Error on init QueueManager.")
             log.error(e)
 
     def append(self, id, description, operation):
@@ -48,6 +53,7 @@ class QueueManager(object):
             self.queue.append(obj_to_queue)
 
         except Exception, e:
+            log.error(u"Error on appending objects to queue.")
             log.error(e)
 
     def send(self):
@@ -70,4 +76,5 @@ class QueueManager(object):
             connection.close()
 
         except Exception, e:
+            log.error(u"Error on sending objects from queue.")
             log.error(e)
