@@ -45,12 +45,9 @@ class QueueManager(object):
 
         """
         self._queue = []
-        self._api_routing_key = getattr(settings, 'QUEUE_API_ROUTING', None) or "networkapi_routing"
-        self._api_exchange = getattr(settings, 'QUEUE_API_EXCHANGE', None) or "networkapi_exchange"
-        self._credentials = getattr(settings, 'QUEUE_API_CREDENTIALS', None) or ('guest', 'guest')
-        self._host = getattr(settings, 'QUEUE_API_HOST', None) or "localhost"
-        self._port = getattr(settings, 'QUEUE_API_PORT', None) or 5672
-        self._virtual_host = getattr(settings, 'QUEUE_API_VIRTUAL_HOST', None) or "/"
+        self._api_routing_key = getattr(settings, 'QUEUE_ROUTING', None) or "networkapi_routing"
+        self._api_exchange = getattr(settings, 'QUEUE_EXCHANGE', None) or "networkapi_exchange"
+        self._url_parameters = getattr(settings, 'QUEUE_BROKER_URL', None) or "amqp://guest:guest@localhost:5672/%2F"
 
     def append(self, dict_obj):
         """
@@ -82,8 +79,7 @@ class QueueManager(object):
 
         try:
 
-            plain_credentials = pika.PlainCredentials(*self._credentials)
-            conn_parameters = pika.ConnectionParameters(self._host, self._port, self._virtual_host, plain_credentials)
+            conn_parameters = pika.URLParameters(self._url_parameters)
             connection = pika.BlockingConnection(conn_parameters)
             channel = connection.channel()
             channel.exchange_declare(exchange=self._api_exchange, type='topic')
