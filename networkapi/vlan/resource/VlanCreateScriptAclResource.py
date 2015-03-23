@@ -14,6 +14,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from networkapi.queue_tools import queue_keys
+from networkapi.queue_tools.queue_manager import QueueManager
 
 from networkapi.rest import RestResource
 from networkapi.log import Log
@@ -97,6 +99,18 @@ class VlanCreateScriptAclResource(RestResource):
 
             scriptAclCvs(
                 acl_name, vlan_formated, environment, network_type, user, template_name)
+
+            # Send to Queue
+            queue_manager = QueueManager()
+
+            obj_to_queue = dict(
+                id=vlan.id,
+                description=queue_keys.VLAN_CREATE_SCRIPT_ACL,
+                operation=QueueManager.OPERATION_SAVE
+            )
+
+            queue_manager.append(obj_to_queue)
+            queue_manager.send()
 
             return self.response(dumps_networkapi({'vlan': vlan_formated}))
 
