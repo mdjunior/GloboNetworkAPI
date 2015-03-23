@@ -16,13 +16,16 @@
 # limitations under the License.
 
 import json
+import types
+
+import logging
 
 import pika
+
 from django.conf import settings
 
-from networkapi.log import Log
 
-log = Log(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class QueueManager(object):
@@ -35,46 +38,68 @@ class QueueManager(object):
     OPERATION_DELETE = "delete"
 
     def __init__(self):
-        try:
+        """
+            Create a new instance QueueManager and initialize
+            with parameters of routing, exchange and connection
+            from settings or set default settings.
 
-            self.queue = list()
-            self.api_routing_key = getattr(settings, 'api_routing', None) or "networkapi_routing"
-            self.api_exchange = getattr(settings, 'api_exchange', None) or "networkapi_exchange"
-            self.connection_parameters = getattr(settings, 'connection_parameters', None) or pika.ConnectionParameters()
+        """
+        self._queue = []
+        self._api_routing_key = getattr(settings, 'QUEUE_API_ROUTING', None) or "networkapi_routing"
+        self._api_exchange = getattr(settings, 'QUEUE_API_EXCHANGE', None) or "networkapi_exchange"
+        self._credentials = getattr(settings, 'QUEUE_API_CREDENTIALS', None) or ('guest', 'guest')
+        self._host = getattr(settings, 'QUEUE_API_HOST', None) or "localhost"
+        self._port = getattr(settings, 'QUEUE_API_PORT', None) or 5672
+        self._virtual_host = getattr(settings, 'QUEUE_API_VIRTUAL_HOST', None) or "/"
+
+    def append(self, dict_obj):
+        """
+            Appended in list object a dictionary that represents
+            the body of the message that will be sent to queue.
+
+            :param dict_obj: Dict object
+
+        """
+
+        try:
+            if types.DictType != type(dict_obj):
+                raise ValueError(u"QueueManagerError - The type must be a Dict")
+
+            self._queue.append(dict_obj)
 
         except Exception, e:
-            log.error(u"Error on init QueueManager.")
-            log.error(e)
-
-    def append(self, id, description, operation):
-
-        try:
-            obj_to_queue = dict(id=id, description=description, operation=operation)
-            self.queue.append(obj_to_queue)
-
-        except Exception, e:
-            log.error(u"Error on appending objects to queue.")
-            log.error(e)
+            LOGGER.error(u"QueueManagerError - Error on appending objects to queue.")
+            LOGGER.error(e)
 
     def send(self):
 
-        try:
-            connection = pika.BlockingConnection(self.connection_parameters)
-            channel = connection.channel()
-            channel.exchange_declare(exchange=self.api_exchange, type='topic')
+        """
+            Open a new connection defining a channel,
+            then serializes message by message posting
+            them to your consumers in TOPIC standard
+            and closes the connection.
+        """
 
-            for message in self.queue:
+        try:
+
+            plain_credentials = pika.PlainCredentials(*self._credentials)
+            conn_parameters = pika.ConnectionParameters(self._host, self._port, self._virtual_host, plain_credentials)
+            connection = pika.BlockingConnection(conn_parameters)
+            channel = connection.channel()
+            channel.exchange_declare(exchange=self._api_exchange, type='topic')
+
+            for message in self._queue:
 
                 serialized_message = json.dumps(message, ensure_ascii=False)
 
                 channel.basic_publish(
-                    exchange=self.api_exchange,
-                    routing_key=self.api_routing_key,
+                    exchange=self._api_exchange,
+                    routing_key=self._api_routing_key,
                     body=serialized_message
                 )
 
             connection.close()
 
         except Exception, e:
-            log.error(u"Error on sending objects from queue.")
-            log.error(e)
+            LOGGER.error(u"QueueManagerError - Error on sending objects from queue.")
+            LOGGER.error(e)
