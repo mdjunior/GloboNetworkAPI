@@ -335,10 +335,21 @@ class VlanEditResource(RestResource):
             # Send to Queue
             queue_manager = QueueManager()
 
+            networks_ipv4_ids = []
+            networks_ipv6_ids = []
+
+            for netv4 in vlan.networkipv4_set.all():
+                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
+
+            for netv6 in vlan.networkipv6_set.all():
+                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
+
             obj_to_queue = dict(
-                id=vlan.id,
-                description=queue_keys.VLAN_CREATE_VLAN,
-                operation=QueueManager.OPERATION_SAVE
+                id_vlan=vlan.id,
+                id_environemnt=vlan.ambiente.id,
+                networks_ipv4=networks_ipv4_ids,
+                networks_ipv6=networks_ipv6_ids,
+                description=queue_keys.VLAN_CREATE_VLAN
             )
 
             queue_manager.append(obj_to_queue)

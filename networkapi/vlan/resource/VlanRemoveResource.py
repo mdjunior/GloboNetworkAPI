@@ -21,6 +21,8 @@ from networkapi.auth import has_perm
 from networkapi.grupo.models import GrupoError
 from networkapi.infrastructure.xml_utils import dumps_networkapi, XMLError
 from networkapi.log import Log
+from networkapi.queue_tools import queue_keys
+from networkapi.queue_tools.queue_manager import QueueManager
 from networkapi.rest import RestResource
 from networkapi.util import is_valid_int_greater_zero_param
 from networkapi.vlan.models import Vlan, VlanError, VlanNotFoundError, \
@@ -88,6 +90,9 @@ class VlanRemoveResource(RestResource):
                         u'User does not have permission to perform the operation.')
                     return self.not_authorized()
 
+            networks_ipv4_ids = []
+            networks_ipv6_ids = []
+
             with distributedlock(LOCK_VLAN % vlan_id):
 
                 # Business Rules
@@ -98,12 +103,14 @@ class VlanRemoveResource(RestResource):
                     for net4 in vlan.networkipv4_set.all():
                         if net4.active:
                             try:
-                                command = settings.NETWORKIPV4_REMOVE % int(
-                                    net4.id)
+                                network_to_queue = dict(id=net4.id, ip=net4.ip_formated)
+
+                                command = settings.NETWORKIPV4_REMOVE % int(net4.id)
 
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net4.deactivate(user, True)
+                                    networks_ipv4_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net4.id))
                             except Exception, e:
@@ -113,11 +120,14 @@ class VlanRemoveResource(RestResource):
                     for net6 in vlan.networkipv6_set.all():
                         if net6.active:
                             try:
-                                command = settings.NETWORKIPV6_REMOVE % int(
-                                    net6.id)
+
+                                network_to_queue = dict(id=net6.id, ip=net6.ip_formated)
+
+                                command = settings.NETWORKIPV6_REMOVE % int(net6.id)
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net6.deactivate(user, True)
+                                    networks_ipv6_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net6.id))
                             except Exception, e:
@@ -133,9 +143,11 @@ class VlanRemoveResource(RestResource):
                         None, 'Cant remove vlan because its inactive.')
 
                 # Execute script
+                vlan_id = vlan.id
+                environment_id = vlan.ambiente.id
 
                 # navlan -i <ID_REQUISICAO> --remove
-                command = settings.VLAN_REMOVE % vlan.id
+                command = settings.VLAN_REMOVE % vlan_id
                 code, stdout, stderr = exec_script(command)
 
                 # Return XML
@@ -148,6 +160,21 @@ class VlanRemoveResource(RestResource):
                     map = dict()
                     map['sucesso'] = success_map
                     vlan.remove(user)
+
+                    # Send to Queue
+                    queue_manager = QueueManager()
+
+                    obj_to_queue = dict(
+                        id_vlan=vlan_id,
+                        id_environemnt=environment_id,
+                        networks_ipv4=networks_ipv4_ids,
+                        networks_ipv6=networks_ipv6_ids,
+                        description=queue_keys.VLAN_REMOVE
+                    )
+
+                    queue_manager.append(obj_to_queue)
+                    queue_manager.send()
+
                     return self.response(dumps_networkapi(map))
                 else:
                     return self.response_error(2, stdout + stderr)

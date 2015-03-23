@@ -403,14 +403,24 @@ class VlanResource(RestResource):
             map = dict()
             map['sucesso'] = success_map
 
-
             # Send to Queue
             queue_manager = QueueManager()
 
+            networks_ipv4_ids = []
+            networks_ipv6_ids = []
+
+            for netv4 in vlan.networkipv4_set.all():
+                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
+
+            for netv6 in vlan.networkipv6_set.all():
+                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
+
             obj_to_queue = dict(
-                id=vlan.id,
-                description=queue_keys.VLAN_CRIAR,
-                operation=QueueManager.OPERATION_SAVE
+                id_vlan=vlan.id,
+                id_environemnt=vlan.ambiente.id,
+                networks_ipv4=networks_ipv4_ids,
+                networks_ipv6=networks_ipv6_ids,
+                description=queue_keys.VLAN_CRIAR
             )
 
             queue_manager.append(obj_to_queue)
@@ -422,7 +432,6 @@ class VlanResource(RestResource):
 
     def add_remove_check_list_vlan_trunk(self, user, networkapi_map, vlan_id, operation):
 
-        OPERATION_REMOVE = "del"
         equipment_map = networkapi_map.get('equipamento')
         if equipment_map is None:
             return self.response_error(105)
@@ -503,19 +512,6 @@ class VlanResource(RestResource):
                 success_map['codigo'] = '%04d' % code
                 success_map['descricao'] = {'stdout': stdout, 'stderr': stderr}
                 map['sucesso'] = success_map
-
-                if operation == OPERATION_REMOVE:
-                    # Send to Queue
-                    queue_manager = QueueManager()
-
-                    obj_to_queue = dict(
-                        id=vlan.id,
-                        description=queue_keys.VLAN_REMOVE,
-                        operation=QueueManager.OPERATION_DELETE
-                    )
-
-                    queue_manager.append(obj_to_queue)
-                    queue_manager.send()
 
                 return self.response(dumps_networkapi(map))
             else:

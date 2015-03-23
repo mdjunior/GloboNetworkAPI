@@ -169,13 +169,26 @@ class VlanCreateResource(RestResource):
             map = dict()
             map['sucesso'] = success_map
 
+            vlan_obj = network_ip.vlan
+
             # Send to Queue
             queue_manager = QueueManager()
 
+            networks_ipv4_ids = []
+            networks_ipv6_ids = []
+
+            for netv4 in vlan_obj.networkipv4_set.all():
+                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
+
+            for netv6 in vlan_obj.networkipv6_set.all():
+                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
+
             obj_to_queue = dict(
-                id=network_ip.vlan.id,
-                description=description_to_queue,
-                operation=QueueManager.OPERATION_SAVE
+                id_vlan=vlan_obj.id,
+                id_environemnt=vlan_obj.ambiente.id,
+                networks_ipv4=networks_ipv4_ids,
+                networks_ipv6=networks_ipv6_ids,
+                description=description_to_queue
             )
 
             queue_manager.append(obj_to_queue)
