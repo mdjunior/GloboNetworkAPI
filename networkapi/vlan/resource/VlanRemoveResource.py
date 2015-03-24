@@ -101,16 +101,17 @@ class VlanRemoveResource(RestResource):
                     network_errors = []
 
                     for net4 in vlan.networkipv4_set.all():
+
+                        network_to_queue = dict(id=net4.id, ip=net4.ip_formated)
+                        networks_ipv4_ids.append(network_to_queue)
+
                         if net4.active:
                             try:
-                                network_to_queue = dict(id=net4.id, ip=net4.ip_formated)
-
                                 command = settings.NETWORKIPV4_REMOVE % int(net4.id)
 
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net4.deactivate(user, True)
-                                    networks_ipv4_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net4.id))
                             except Exception, e:
@@ -118,16 +119,16 @@ class VlanRemoveResource(RestResource):
                                 pass
 
                     for net6 in vlan.networkipv6_set.all():
+
+                        network_to_queue = dict(id=net6.id, ip=net6.ip_formated)
+                        networks_ipv6_ids.append(network_to_queue)
+
                         if net6.active:
                             try:
-
-                                network_to_queue = dict(id=net6.id, ip=net6.ip_formated)
-
                                 command = settings.NETWORKIPV6_REMOVE % int(net6.id)
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net6.deactivate(user, True)
-                                    networks_ipv6_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net6.id))
                             except Exception, e:
