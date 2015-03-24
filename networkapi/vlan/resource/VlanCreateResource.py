@@ -185,7 +185,7 @@ class VlanCreateResource(RestResource):
 
             obj_to_queue = dict(
                 id_vlan=vlan_obj.id,
-                id_environemnt=vlan_obj.ambiente.id,
+                id_environment=vlan_obj.ambiente.id,
                 networks_ipv4=networks_ipv4_ids,
                 networks_ipv6=networks_ipv6_ids,
                 description=description_to_queue

@@ -167,7 +167,7 @@ class VlanRemoveResource(RestResource):
 
                     obj_to_queue = dict(
                         id_vlan=vlan_id,
-                        id_environemnt=environment_id,
+                        id_environment=environment_id,
                         networks_ipv4=networks_ipv4_ids,
                         networks_ipv6=networks_ipv6_ids,
                         description=queue_keys.VLAN_REMOVE

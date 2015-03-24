@@ -114,7 +114,7 @@ class VlanCreateScriptAclResource(RestResource):
 
             obj_to_queue = dict(
                 id_vlan=vlan.id,
-                id_environemnt=vlan.ambiente.id,
+                id_environment=vlan.ambiente.id,
                 networks_ipv4=networks_ipv4_ids,
                 networks_ipv6=networks_ipv6_ids,
                 description=queue_keys.VLAN_CREATE_SCRIPT_AC
