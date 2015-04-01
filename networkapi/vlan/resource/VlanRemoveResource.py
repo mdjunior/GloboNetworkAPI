@@ -33,6 +33,7 @@ from networkapi import settings, error_message_utils
 from networkapi.distributedlock import distributedlock, LOCK_VLAN
 from networkapi.equipamento.models import Equipamento
 from networkapi.error_message_utils import error_messages
+from networkapi.vlan.serializers import VlanSerializer
 
 
 class VlanRemoveResource(RestResource):
@@ -90,8 +91,6 @@ class VlanRemoveResource(RestResource):
                         u'User does not have permission to perform the operation.')
                     return self.not_authorized()
 
-            networks_ipv4_ids = []
-            networks_ipv6_ids = []
 
             with distributedlock(LOCK_VLAN % vlan_id):
 
@@ -101,16 +100,14 @@ class VlanRemoveResource(RestResource):
                     network_errors = []
 
                     for net4 in vlan.networkipv4_set.all():
+
                         if net4.active:
                             try:
-                                network_to_queue = dict(id=net4.id, ip=net4.ip_formated)
-
                                 command = settings.NETWORKIPV4_REMOVE % int(net4.id)
 
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net4.deactivate(user, True)
-                                    networks_ipv4_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net4.id))
                             except Exception, e:
@@ -118,16 +115,13 @@ class VlanRemoveResource(RestResource):
                                 pass
 
                     for net6 in vlan.networkipv6_set.all():
+
                         if net6.active:
                             try:
-
-                                network_to_queue = dict(id=net6.id, ip=net6.ip_formated)
-
                                 command = settings.NETWORKIPV6_REMOVE % int(net6.id)
                                 code, stdout, stderr = exec_script(command)
                                 if code == 0:
                                     net6.deactivate(user, True)
-                                    networks_ipv6_ids.append(network_to_queue)
                                 else:
                                     network_errors.append(str(net6.id))
                             except Exception, e:
@@ -159,20 +153,18 @@ class VlanRemoveResource(RestResource):
 
                     map = dict()
                     map['sucesso'] = success_map
+
+                    #Set as deactivate
                     vlan.remove(user)
 
                     # Send to Queue
                     queue_manager = QueueManager()
 
-                    obj_to_queue = dict(
-                        id_vlan=vlan_id,
-                        id_environemnt=environment_id,
-                        networks_ipv4=networks_ipv4_ids,
-                        networks_ipv6=networks_ipv6_ids,
-                        description=queue_keys.VLAN_REMOVE
-                    )
+                    serializer = VlanSerializer(vlan)
+                    data_to_queue = serializer.data
+                    data_to_queue.update({'description': queue_keys.VLAN_REMOVE})
+                    queue_manager.append(data_to_queue)
 
-                    queue_manager.append(obj_to_queue)
                     queue_manager.send()
 
                     return self.response(dumps_networkapi(map))
