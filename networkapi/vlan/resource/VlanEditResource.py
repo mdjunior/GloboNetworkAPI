@@ -33,6 +33,7 @@ import re
 from networkapi.settings import VLAN_CREATE
 from networkapi.infrastructure.script_utils import exec_script
 from networkapi.equipamento.models import Equipamento
+from networkapi.vlan.serializers import VlanSerializer
 
 
 class VlanEditResource(RestResource):
@@ -335,24 +336,11 @@ class VlanEditResource(RestResource):
             # Send to Queue
             queue_manager = QueueManager()
 
-            networks_ipv4_ids = []
-            networks_ipv6_ids = []
+            serializer = VlanSerializer(vlan)
+            data_to_queue = serializer.data
+            data_to_queue.update({'description': queue_keys.VLAN_CREATE_ACL})
+            queue_manager.append(data_to_queue)
 
-            for netv4 in vlan.networkipv4_set.all():
-                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
-
-            for netv6 in vlan.networkipv6_set.all():
-                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
-
-            obj_to_queue = dict(
-                id_vlan=vlan.id,
-                id_environment=vlan.ambiente.id,
-                networks_ipv4=networks_ipv4_ids,
-                networks_ipv6=networks_ipv6_ids,
-                description=queue_keys.VLAN_CREATE_VLAN
-            )
-
-            queue_manager.append(obj_to_queue)
             queue_manager.send()
 
             return self.response(dumps_networkapi({}))

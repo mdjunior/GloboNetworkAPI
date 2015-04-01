@@ -34,6 +34,7 @@ from networkapi.ambiente.models import IP_VERSION
 from networkapi.acl.Enum import NETWORK_TYPES
 from networkapi.vlan.models import VlanNotFoundError, VlanACLDuplicatedError
 from networkapi.exception import InvalidValueError
+from networkapi.vlan.serializers import VlanSerializer
 
 logger = logging.getLogger('VlanCreateAcl')
 
@@ -110,24 +111,11 @@ class VlanCreateAclResource(RestResource):
             # Send to Queue
             queue_manager = QueueManager()
 
-            networks_ipv4_ids = []
-            networks_ipv6_ids = []
+            serializer = VlanSerializer(vlan)
+            data_to_queue = serializer.data
+            data_to_queue.update({'description': queue_keys.VLAN_CREATE_ACL})
+            queue_manager.append(data_to_queue)
 
-            for netv4 in vlan.networkipv4_set.all():
-                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
-
-            for netv6 in vlan.networkipv6_set.all():
-                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
-
-            obj_to_queue = dict(
-                id_vlan=vlan.id,
-                id_environment=vlan.ambiente.id,
-                networks_ipv4=networks_ipv4_ids,
-                networks_ipv6=networks_ipv6_ids,
-                description=queue_keys.VLAN_CREATE_ACL
-            )
-
-            queue_manager.append(obj_to_queue)
             queue_manager.send()
 
             return self.response(dumps_networkapi({'vlan': model_to_dict(vlan)}))

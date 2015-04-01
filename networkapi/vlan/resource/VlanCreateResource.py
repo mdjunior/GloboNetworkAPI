@@ -33,6 +33,7 @@ from networkapi.ambiente.models import IP_VERSION, AmbienteError
 from networkapi.settings import VLAN_CREATE, NETWORKIPV4_CREATE,\
     NETWORKIPV6_CREATE
 from networkapi.equipamento.models import Equipamento
+from networkapi.vlan.serializers import VlanSerializer
 
 
 class VlanCreateResource(RestResource):
@@ -174,24 +175,11 @@ class VlanCreateResource(RestResource):
             # Send to Queue
             queue_manager = QueueManager()
 
-            networks_ipv4_ids = []
-            networks_ipv6_ids = []
+            serializer = VlanSerializer(vlan_obj)
+            data_to_queue = serializer.data
+            data_to_queue.update({'description': description_to_queue})
+            queue_manager.append(data_to_queue)
 
-            for netv4 in vlan_obj.networkipv4_set.all():
-                networks_ipv4_ids.append(dict(id=netv4.id, ip=netv4.ip_formated))
-
-            for netv6 in vlan_obj.networkipv6_set.all():
-                networks_ipv6_ids.append(dict(id=netv6.id, ip=netv6.ip_formated))
-
-            obj_to_queue = dict(
-                id_vlan=vlan_obj.id,
-                id_environment=vlan_obj.ambiente.id,
-                networks_ipv4=networks_ipv4_ids,
-                networks_ipv6=networks_ipv6_ids,
-                description=description_to_queue
-            )
-
-            queue_manager.append(obj_to_queue)
             queue_manager.send()
 
             # Return XML
