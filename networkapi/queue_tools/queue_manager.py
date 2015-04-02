@@ -33,10 +33,6 @@ class QueueManager(object):
         Object to manager objects sent to queue
     """
 
-    OPERATION_SAVE = "insert"
-    OPERATION_UPDATE = "update"
-    OPERATION_DELETE = "delete"
-
     def __init__(self):
         """
             Create a new instance QueueManager and initialize
@@ -59,6 +55,7 @@ class QueueManager(object):
         """
 
         try:
+
             if not isinstance(dict_obj, types.DictType):
                 raise ValueError(u"QueueManagerError - The type must be a instance of Dict")
 
