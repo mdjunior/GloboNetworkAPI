@@ -59,8 +59,8 @@ class QueueManager(object):
         """
 
         try:
-            if types.DictType != type(dict_obj):
-                raise ValueError(u"QueueManagerError - The type must be a Dict")
+            if not isinstance(dict_obj, types.DictType):
+                raise ValueError(u"QueueManagerError - The type must be a instance of Dict")
 
             self._queue.append(dict_obj)
 
