@@ -277,7 +277,7 @@ def delete(request):
 
                     server_pool_member.delete(request.user)
 
-                    q.append(member_id, 'pool_member', QueueManager.OPERATION_DELETE)
+                    q.append(member_id, 'pool_member')
 
                     command = settings.POOL_REAL_REMOVE % (id_pool, id_ip, port_ip)
 
@@ -287,7 +287,7 @@ def delete(request):
                         raise exceptions.ScriptDeletePoolException()
 
                 server_pool.delete(request.user)
-                q.append(pool_id, 'pool', QueueManager.OPERATION_DELETE)
+                q.append(pool_id, 'pool')
 
             except ServerPool.DoesNotExist:
                 pass
@@ -867,10 +867,10 @@ def save(request):
 
         q = QueueManager()
 
-        q.append(sp.id, 'pool', QueueManager.OPERATION_SAVE)
+        q.append(sp.id, 'pool')
 
         for spm in members:
-            q.append(spm.id, 'pool_member', QueueManager.OPERATION_SAVE)
+            q.append(spm.id, 'pool_member')
 
         q.send()
 
