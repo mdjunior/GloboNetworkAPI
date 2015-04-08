@@ -21,6 +21,8 @@ from networkapi.auth import has_perm
 from networkapi.grupo.models import GrupoError
 from networkapi.infrastructure.xml_utils import dumps_networkapi, XMLError
 from networkapi.log import Log
+from networkapi.queue_tools import queue_keys
+from networkapi.queue_tools.queue_manager import QueueManager
 from networkapi.rest import RestResource
 from networkapi.util import is_valid_int_greater_zero_param
 from networkapi.vlan.models import Vlan, VlanError, VlanNotFoundError, \
@@ -31,6 +33,7 @@ from networkapi import settings, error_message_utils
 from networkapi.distributedlock import distributedlock, LOCK_VLAN
 from networkapi.equipamento.models import Equipamento
 from networkapi.error_message_utils import error_messages
+from networkapi.vlan.serializers import VlanSerializer
 
 
 class VlanRemoveResource(RestResource):
@@ -147,7 +150,20 @@ class VlanRemoveResource(RestResource):
 
                     map = dict()
                     map['sucesso'] = success_map
+                    
+                    #Set as deactivate
                     vlan.remove(user)
+                    
+                    # Send to Queue
+                    queue_manager = QueueManager()
+                    
+                    serializer = VlanSerializer(vlan)
+                    data_to_queue = serializer.data
+                    data_to_queue.update({'description': queue_keys.VLAN_REMOVE})
+                    queue_manager.append(data_to_queue)
+                    
+                    queue_manager.send()
+                    
                     return self.response(dumps_networkapi(map))
                 else:
                     return self.response_error(2, stdout + stderr)
