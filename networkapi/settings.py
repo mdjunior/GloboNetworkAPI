@@ -290,6 +290,13 @@ VIP_REALS_v6_DISABLE = 'gerador_vips -i %s --id_ipv6 %s --port_ip %s --port_vip 
 VIP_REALS_v4_CHECK = 'gerador_vips -i %s --id_ip %s --port_ip %s --port_vip %s --chk'
 VIP_REALS_v6_CHECK = 'gerador_vips -i %s --id_ipv6 %s --port_ip %s --port_vip %s --chk'
 
+##################################
+#       QUEUE SETTINGS
+##################################
+QUEUE_ROUTING = "networkapi_routing"
+QUEUE_EXCHANGE = "networkapi_exchange"
+#QUEUE_BROKER_URL = "amqp://guest:guest@localhost:5672/%2F"
+
 
 ###################################
 #    PATH ACLS

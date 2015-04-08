@@ -150,20 +150,20 @@ class VlanRemoveResource(RestResource):
 
                     map = dict()
                     map['sucesso'] = success_map
-                    
+
                     #Set as deactivate
                     vlan.remove(user)
-                    
+
                     # Send to Queue
                     queue_manager = QueueManager()
-                    
+
                     serializer = VlanSerializer(vlan)
                     data_to_queue = serializer.data
                     data_to_queue.update({'description': queue_keys.VLAN_REMOVE})
                     queue_manager.append(data_to_queue)
-                    
+
                     queue_manager.send()
-                    
+
                     return self.response(dumps_networkapi(map))
                 else:
                     return self.response_error(2, stdout + stderr)
