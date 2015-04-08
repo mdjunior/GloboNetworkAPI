@@ -157,6 +157,99 @@ If you want to use LDAP authentication, configure the following variables in ``F
 
 !TODO
 
+Integrate with Queue
+********************
+
+Install Dependencies::
+
+	sudo yum install rabbitmq-server
+
+RabbitMQ is a messaging broker - an intermediary for messaging. It gives your applications a common platform to send and receive messages, and your messages a safe place to live until received. For details on RabbitMQ, check `RabbitMQ Documentation <https://www.rabbitmq.com/documentation.html>`_.
+
+Example configuration on ``settings.py``::
+
+	QUEUE_ROUTING = "<routing name>"
+	QUEUE_EXCHANGE = "<exchange_name>"
+	QUEUE_BROKER_URL = "amqp://<user>:<pass>@<host>:<port>/<virtualhost>"
+
+Usage::
+
+	from queue_tools import queue_keys
+	from queue_tools.queue_manager import QueueManager
+
+	# Create new queue manager
+	queue_manager = QueueManager()
+
+	# Dict is the message body
+	obj_to_queue = {
+    	 "id_vlan": <vlan_id>,
+    	 "num_vlan": <num_vlan>,
+    	 "id_environment": <environment_id>,
+    	 "networks_ipv4": [
+    	  {
+    	   "id": <id>,
+    	   "ip_formated": "<oct1>.<oct2>.<oct3>.<oct4>/<block>"
+    	  }
+    	 ],
+    	 "networks_ipv6": [
+    	  {
+    	   "id": <id>,
+    	   "ip_formated": "<oct1>.<oct2>.<oct3>.<oct4>.<oct5>.<oct6>.<oct7>.<oct8>/<block>"
+    	  }
+    	 ],
+    	 "description": queue_keys.VLAN_REMOVE,
+	}
+
+	# Add in memory temporary on queue to sent
+	queue_manager.append(obj_to_queue)
+
+	# sent to consumer
+	queue_manager.send()
+
+Output::
+
+	$VAR1 = {
+    	 'id_vlan' => <id>,
+    	 "num_vlan" => <num_vlan>,
+    	 "id_environment" => <environment_id>,
+    	 "networks_ipv4" => [
+    	  {
+    	   "id" => <id>,
+    	   "ip_formated" => "<oct1>.<oct2>.<oct3>.<oct4>/<block>"
+    	  }
+    	 ],
+    	 "networks_ipv6" => [
+    	  {
+    	   "id" => <id>,
+    	   "ip_formated" => "<oct1>.<oct2>.<oct3>.<oct4>.<oct5>.<oct6>.<oct7>.<oct8>/<block>"
+    	  }
+    	 ],
+    	 'description' => 'remove'
+    	};
+
+Features that use the ``QueueManager.py``::
+
+	Vlan  remove()
+	uri: vlan/<id_vlan>/remove/
+
+	Vlan  create_ipv4()
+	uri: vlan/v4/create/
+
+	Vlan  create_ipv6()
+	uri: vlan/v6/create/
+
+	Vlan  create_acl()
+	uri: vlan/create/acl/
+
+	Vlan  create_script_acl()
+	uri: vlan/create/script/acl/
+
+	Vlan  create_vlan()
+	uri: vlan/create/
+
+	Vlan  criar()
+	uri: vlan/<id_vlan>/criar/
+
 Working with Documentation
 **************************
 
