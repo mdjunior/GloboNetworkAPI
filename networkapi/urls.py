@@ -532,10 +532,18 @@ filter_dissociate_one = FilterDissociateOneResource()
 eventlog_find_resource = EventLogFindResource()
 eventlog_choice_resource = EventLogChoiceResource()
 
-urlpatterns = patterns('',
+api_prefix = r'^api/'
 
-                       url(r'^api/', include('networkapi.pools.urls')),
-                       url(r'^api/', include('networkapi.snippets.urls')),
+
+urlpatterns = patterns('',
+    url(api_prefix, include('networkapi.api_pools.urls')),
+    url(api_prefix, include('networkapi.snippets.urls')),
+    url(api_prefix, include('networkapi.api_vip_request.urls')),
+    url(api_prefix, include('networkapi.api_healthcheck.urls')),
+)
+
+urlpatterns += patterns('',
+
                        # Example:
                        # (r'^networkapi/', include('networkapi.foo.urls')),
 
