@@ -20,8 +20,6 @@ import threading
 local = threading.local()
 
 
-LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"  # For HTTP Request IDs
-
-REQUEST_ID_HEADER = "REQUEST_ID_HEADER"  # Use in settings.py if using X_REQUEST_ID
+REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"  # Use in settings.py if using X_REQUEST_ID
 NO_REQUEST_ID = "NoRequestId"  # Used if no request ID is available
-NO_REQUEST_USER = "NoUser"  # Avoid if no User
+NO_REQUEST_USER = "NoRequestUser"  # Avoid if no User
