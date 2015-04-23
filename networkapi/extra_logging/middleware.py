@@ -15,17 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from networkapi.extra_logging import local, REQUEST_ID_HEADER, NO_REQUEST_ID, NO_REQUEST_USER
-
 import uuid
+import base64
+
 from django.conf import settings
+
+from networkapi.extra_logging import local, REQUEST_ID_HEADER, NO_REQUEST_ID, NO_REQUEST_USER
 
 
 def get_identity(request):
     x_request_id = getattr(settings, REQUEST_ID_HEADER, None)
     if x_request_id:
         return request.META.get(x_request_id, NO_REQUEST_ID)
-    return uuid.uuid4().hex
+
+    identity = uuid.uuid4().bytes
+    encoded_id = base64.urlsafe_b64encode(identity)
+    safe_id = encoded_id.replace('=', '')
+
+    return safe_id.upper()
 
 
 def get_username(request):
@@ -41,6 +48,7 @@ class ExtraLoggingMiddleware(object):
         username = get_username(request)
         local.request_id = identity
         local.request_user = username
+        local.request_path = request.get_full_path()
         request.id = identity
 
 
