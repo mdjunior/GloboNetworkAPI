@@ -17,7 +17,7 @@
 
 
 import logging
-from networkapi.extra_logging import local, NO_REQUEST_ID, NO_REQUEST_USER
+from networkapi.extra_logging import local, NO_REQUEST_ID, NO_REQUEST_USER, NO_REQUEST_PATH
 
 
 class ExtraLoggingFilter(logging.Filter):
@@ -25,4 +25,6 @@ class ExtraLoggingFilter(logging.Filter):
     def filter(self, record):
         record.request_id = getattr(local, 'request_id', NO_REQUEST_ID)
         record.request_user = getattr(local, 'request_user', NO_REQUEST_USER)
+        record.request_path = getattr(local, 'request_path', NO_REQUEST_PATH)
+
         return True
