@@ -211,7 +211,6 @@ INSTALLED_APPS = (
     'rest_framework',
     #'networkapi.snippets',
     #'networkapi.api_pools',
-    'django_nose',
 )
 
 
