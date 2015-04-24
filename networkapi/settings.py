@@ -209,8 +209,8 @@ INSTALLED_APPS = (
     'networkapi.blockrules',
     'networkapi.config',
     'rest_framework',
-    'networkapi.snippets',
-    'networkapi.api_pools',
+    #'networkapi.snippets',
+    #'networkapi.api_pools',
     'django_nose',
 )
 
