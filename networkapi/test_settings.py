@@ -29,7 +29,7 @@ DATABASES = {
         'OPTIONS': {"init_command": "SET storage_engine=INNODB"}
     }
 }
-environment_settings
+
 INSTALLED_APPS += (
     'django_nose',
 )
