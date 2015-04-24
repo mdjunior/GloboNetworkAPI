@@ -34,6 +34,6 @@ INSTALLED_APPS += (
     'django_nose',
 )
 
-NOSE_ARGS = ['--with-xunit', '--noinput', '--tests=networkapi/ambiente/']
+NOSE_ARGS = ['--with-xunit', '--tests=networkapi/ambiente/']
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
