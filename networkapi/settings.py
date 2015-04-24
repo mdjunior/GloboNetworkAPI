@@ -28,15 +28,15 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': 'localhost',
-        'NAME': 'telecom',
+        'NAME': 'telecom_test',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': 'root',
         'PORT': '3306',
         'OPTIONS': {"init_command": "SET storage_engine=INNODB"}
     }
 }
 
-from networkapi.models.models_signal_receiver import *
+#from networkapi.models.models_signal_receiver import *
 
 # Aplicação rodando em modo Debug
 DEBUG = True
@@ -212,6 +212,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'networkapi.snippets',
     'networkapi.api_pools',
+    'django_nose',
 )
 
 
@@ -242,7 +243,8 @@ MAX_VLAN_NUMBER_02 = 4094
 MIN_OCT4 = 5
 MAX_OCT4 = 250
 
-TEST_RUNNER = 'django_pytest.test_runner.TestRunner'
+#TEST_RUNNER = 'django_pytest.test_runner.TestRunner'
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
 ##########
 # Scripts
