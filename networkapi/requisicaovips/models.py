@@ -1651,7 +1651,7 @@ class RequisicaoVips(BaseModel):
                 full_port += ':' + str(v_port.server_pool.default_port)
 
             if full_port not in vip_port_list:
-                vip_port_list.append({'port': full_port, 'vip_port_id': v_port.id })
+                vip_port_list.append({'porta': full_port, 'vip_port_id': v_port.id })
 
             members = v_port.server_pool.serverpoolmember_set.all()
 
