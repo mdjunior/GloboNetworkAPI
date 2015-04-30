@@ -365,6 +365,7 @@ class RequisicaoVipsResource(RestResource):
                 server_pool = vip_port.server_pool
                 pool_raw = model_to_dict(server_pool)
                 pool_raw["port_vip"] = vip_port.port_vip
+                pool_raw["port_vip_id"] = vip_port.id
 
                 for pool_member in server_pool.serverpoolmember_set.all():
 
@@ -398,7 +399,6 @@ class RequisicaoVipsResource(RestResource):
             """"""
             vip_port_list, reals_list, reals_priority, reals_weight = request_vip.get_vips_and_reals(
                 request_vip.id,
-                omit_port_real=True
             )
 
             if reals_list:
