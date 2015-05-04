@@ -288,7 +288,7 @@ class RequestVipsResource(RestResource):
         except (RequisicaoVipsError, EquipamentoError, IpError, HealthcheckExpectError, GrupoError), e:
             return self.response_error(1)
 
-    @deprecated(new_uri='api/vip/request/update/')
+    @deprecated(new_uri='api/vip/request/save/<pk>/')
     def handle_put(self, request, user, *args, **kwargs):
         """Treat requests PUT change request VIP.
 

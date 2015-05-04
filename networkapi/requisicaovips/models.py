@@ -1156,13 +1156,13 @@ class RequisicaoVips(BaseModel):
 
                 # Valid values ​​of port
                 for port in port_map:
-                    port_arr = port.get('port').split(':')
+                    port_arr = port.split(':')
                     if len(port_arr) < 2:
                         port = port_arr[0] + ':' + port_arr[0]
-                    if not is_valid_regex(port.get('port'), "[0-9]+:[0-9]+"):
+                    if not is_valid_regex(port, "[0-9]+:[0-9]+"):
                         self.log.error(
-                            u'The port parameter is not a valid value: %s.', port.get('port'))
-                        raise InvalidValueError(None, 'port', port.get('port'))
+                            u'The port parameter is not a valid value: %s.', port)
+                        raise InvalidValueError(None, 'port', port)
 
                     new_port_map.append(port)
 
@@ -1518,7 +1518,13 @@ class RequisicaoVips(BaseModel):
             if reals_weights != None:
                 weights = reals_weights.get('reals_weight')
 
-        server_pool_pks = [port['server_pool_id'] for port in ports_vip if port.get('server_pool_id')]
+        # Remove server pools
+        server_pool_pks = []
+        for port in ports_vip:
+            if isinstance(port, dict):
+                server_pool_id = port.get('server_pool_id')
+                if server_pool_id:
+                    server_pool_pks.append(server_pool_id)
 
         server_pools_to_remove = ServerPool.objects.filter(vipporttopool__requisicao_vip=self).exclude(id__in=server_pool_pks)
 
@@ -1540,12 +1546,18 @@ class RequisicaoVips(BaseModel):
                 member.delete(user)
 
             serv_pool_obj.delete(user)
+        # Remove server pools
 
         # save ServerPool and VipPortToPool
         for port_vip in ports_vip:
 
-            port_to_vip = port_vip.get('port').split(':')
-            server_pool_id = port_vip.get('server_pool_id')
+            if isinstance(port_vip, dict):
+                port_to_vip = port_vip.get('port').split(':')
+                server_pool_id = port_vip.get('server_pool_id')
+            else:
+                port_to_vip = port_vip.split(':')
+                server_pool_id = None
+
             default_port = port_to_vip[1]
             vip_port = port_to_vip[0]
             ip_vip = self.ip or self.ipv6
@@ -1577,6 +1589,7 @@ class RequisicaoVips(BaseModel):
             vip_port_to_pool.save(user)
 
             vip_port_list.append({'port_vip': vip_port, 'server_pool': server_pool})
+        # save ServerPool and VipPortToPool
 
         # save ServerPoolMember
         for i in range(0, len(reals)):
@@ -1635,7 +1648,7 @@ class RequisicaoVips(BaseModel):
 
             server_pool_member.save(user)
 
-    def get_vips_and_reals(self, id_vip, omit_port_real=False):
+    def get_vips_and_reals(self, id_vip):
 
         vip_ports = VipPortToPool.get_by_vip_id(id_vip)
 
@@ -1645,13 +1658,10 @@ class RequisicaoVips(BaseModel):
         reals_weight = list()
 
         for v_port in vip_ports:
-            full_port = str(v_port.port_vip)
-
-            if not omit_port_real:
-                full_port += ':' + str(v_port.server_pool.default_port)
+            full_port = str(v_port.port_vip) + ':' + str(v_port.server_pool.default_port)
 
             if full_port not in vip_port_list:
-                vip_port_list.append({'porta': full_port, 'vip_port_id': v_port.id })
+                vip_port_list.append(full_port)
 
             members = v_port.server_pool.serverpoolmember_set.all()
 
