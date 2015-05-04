@@ -23,7 +23,7 @@ class VipPortToPoolSerializer(serializers.ModelSerializer):
         )
 
 
-class RequesVipSerializer(serializers.ModelSerializer):
+class RequestVipSerializer(serializers.ModelSerializer):
 
     ip = serializers.PrimaryKeyRelatedField(
         many=False,
