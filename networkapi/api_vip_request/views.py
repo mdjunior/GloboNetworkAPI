@@ -21,6 +21,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
+
 from networkapi.log import Log
 from networkapi.distributedlock import distributedlock, LOCK_VIP
 from networkapi.api_vip_request.permissions import Read, Write
@@ -31,11 +32,12 @@ from networkapi.api_pools import exceptions as pool_exceptions
 from networkapi.api_vip_request import exceptions
 from networkapi.ambiente.models import EnvironmentVip, Ambiente
 from networkapi.api_vip_request.serializers import EnvironmentOptionsSerializer, \
-    RequesVipSerializer, VipPortToPoolSerializer
+    RequestVipSerializer, VipPortToPoolSerializer
 from networkapi.equipamento.models import Equipamento, EquipamentoNotFoundError, \
     EquipamentoError
 from networkapi.ip.models import IpNotFoundByEquipAndVipError
 from networkapi.exception import InvalidValueError, EnvironmentVipNotFoundError
+from networkapi.api_vip_request import facade
 
 log = Log(__name__)
 
@@ -155,15 +157,7 @@ def list_environment_by_environment_vip(request, environment_vip_id):
         raise api_exceptions.NetworkAPIException()
 
 
-def _set_l7_filter_for_vip(obj_req_vip):
 
-    if obj_req_vip.rule:
-        obj_req_vip.l7_filter = '\n'.join(
-            obj_req_vip.rule.rulecontent_set.all().values_list(
-                'content',
-                flat=True
-            )
-        )
 
 
 @api_view(['POST', 'PUT'])
@@ -178,7 +172,7 @@ def save(request, pk=None):
 
         vip_ports = data.get("vip_ports_to_pools")
 
-        req_vip_serializer = RequesVipSerializer(
+        req_vip_serializer = RequestVipSerializer(
             data=data
         )
 
@@ -191,7 +185,7 @@ def save(request, pk=None):
 
             obj_req_vip.filter_valid = True
             obj_req_vip.validado = False
-            _set_l7_filter_for_vip(obj_req_vip)
+            facade.set_l7_filter_for_vip(obj_req_vip)
             obj_req_vip.set_new_variables(data)
             obj_req_vip.save(user)
 
@@ -201,7 +195,7 @@ def save(request, pk=None):
                     v_port.requisicao_vip = obj_req_vip
                     v_port.save(user)
             else:
-                _validate_reals(data)
+                facade.validate_reals(data)
                 obj_req_vip.save_vips_and_ports(data, user)
 
             return Response(
@@ -211,7 +205,7 @@ def save(request, pk=None):
 
         elif request.method == "PUT":
 
-            obj_req_vip = RequisicaoVips.objects.get(pk=pk)
+            RequisicaoVips.objects.get(pk=pk)
 
             with distributedlock(LOCK_VIP % pk):
 
@@ -219,7 +213,7 @@ def save(request, pk=None):
                 obj_req_vip.id = pk
                 obj_req_vip.filter_valid = True
                 obj_req_vip.validado = False
-                _set_l7_filter_for_vip(obj_req_vip)
+                facade.set_l7_filter_for_vip(obj_req_vip)
                 obj_req_vip.set_new_variables(data)
                 obj_req_vip.save(user)
 
@@ -250,56 +244,11 @@ def save(request, pk=None):
                         vip_port_obj.save(user)
 
                 else:
-                    _validate_reals(data)
+                    facade.validate_reals(data)
                     obj_req_vip.delete_vips_and_reals(user)
                     obj_req_vip.save_vips_and_ports(data, user)
 
                 return Response(data=req_vip_serializer.data)
-
-    except RequisicaoVips.DoesNotExist, exception:
-        log.error(exception)
-        raise exceptions.VipRequestDoesNotExistException()
-
-    except api_exceptions.ValidationException, exception:
-        log.error(exception)
-        raise exception
-
-    except Exception, exception:
-        log.error(exception)
-        raise api_exceptions.NetworkAPIException()
-
-
-def _validate_reals(data):
-
-    try:
-
-        reals_data = data.get('reals')
-
-        if reals_data is not None:
-
-            finalidade = data.get('finalidade')
-            cliente = data.get('cliente')
-            ambiente = data.get('ambiente')
-
-            evip = EnvironmentVip.get_by_values(
-                finalidade,
-                cliente,
-                ambiente
-            )
-
-            for real in reals_data.get('real'):
-
-                real_ip = real.get('real_ip')
-                real_name = real.get('real_name')
-
-                if real_name:
-                    equip = Equipamento.get_by_name(real_name)
-                else:
-                    message = u'The real_name parameter is not a valid value'
-                    log.error(message)
-                    raise api_exceptions.ValidationException(message)
-
-                RequisicaoVips.valid_real_server(real_ip, equip, evip, False)
 
     except EnvironmentVipNotFoundError, exception:
         log.error(exception.message)
@@ -318,5 +267,43 @@ def _validate_reals(data):
         raise api_exceptions.ValidationException(exception.message)
 
     except InvalidValueError, exception:
-        log.error(u'Invalid Ip Type')
-        raise api_exceptions.ValidationException(u'Invalid Ip Type')
+        message = u'Invalid Ip Type'
+        log.error(exception)
+        log.error(message)
+        raise api_exceptions.ValidationException(message)
+
+    except RequisicaoVips.DoesNotExist, exception:
+        log.error(exception)
+        raise exceptions.VipRequestDoesNotExistException()
+
+    except api_exceptions.ValidationException, exception:
+        log.error(exception)
+        raise api_exceptions.ValidationException(exception.message)
+
+    except Exception, exception:
+        log.error(exception)
+        raise api_exceptions.NetworkAPIException()
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated, Read))
+@commit_on_success
+def get_by_pk(request, pk):
+
+    try:
+
+        data = facade.get_by_pk(pk)
+
+        return Response({'vip': data})
+
+    except exceptions.InvalidIdVipRequestException, exception:
+        log.error(exception)
+        raise exception
+
+    except RequisicaoVips.DoesNotExist, exception:
+        log.error(exception)
+        raise exceptions.VipRequestDoesNotExistException()
+
+    except Exception, exception:
+        log.error(exception)
+        raise api_exceptions.NetworkAPIException()
