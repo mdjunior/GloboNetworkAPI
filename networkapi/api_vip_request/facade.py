@@ -21,7 +21,8 @@ from networkapi.ambiente.models import EnvironmentVip
 from networkapi.equipamento.models import Equipamento
 
 from networkapi.requisicaovips.models import RequisicaoVips, VipPortToPool
-from networkapi.util import is_valid_int_greater_zero_param, convert_boolean_to_int
+from networkapi.util import is_valid_int_greater_zero_param, convert_boolean_to_int, mount_ipv4_string, \
+    mount_ipv6_string
 from networkapi.api_vip_request import exceptions
 from networkapi.api_rest import exceptions as api_exceptions
 
@@ -85,7 +86,7 @@ def get_by_pk(pk):
 
     data["pools"] = pools
 
-    vip_port_list, reals_list, reals_priority, reals_weight = vip_request.get_vips_and_reals(
+    vip_port_list, reals_list, reals_priority, reals_weight = get_vips_and_reals(
         vip_request.id,
     )
 
@@ -151,3 +152,52 @@ def set_l7_filter_for_vip(obj_req_vip):
                 flat=True
             )
         )
+
+
+def get_vips_and_reals(id_vip, omit_port_real=False):
+
+    vip_ports = VipPortToPool.get_by_vip_id(id_vip)
+
+    vip_port_list = list()
+    reals_list = list()
+    reals_priority = list()
+    reals_weight = list()
+
+    for v_port in vip_ports:
+        full_port = str(v_port.port_vip)
+
+        if not omit_port_real:
+            full_port += ':' + str(v_port.server_pool.default_port)
+
+        if full_port not in vip_port_list:
+            vip_port_list.append({'porta': full_port, 'vip_port_id': v_port.id })
+
+        members = v_port.server_pool.serverpoolmember_set.all()
+
+        for member in members:
+            try:
+                ip_equip = member.ip.ipequipamento_set.all().uniqueResult()
+                equip_name = ip_equip.equipamento.nome
+                ip_string = mount_ipv4_string(member.ip)
+                ip_id = member.ip.id
+            except:
+                ip_equip = member.ipv6.ipv6equipament_set.all().uniqueResult()
+                equip_name = ip_equip.equipamento.nome
+                ip_string = mount_ipv6_string(member.ipv6)
+                ip_id = member.ipv6.id
+
+            real_raw = {
+                'real_ip': ip_string,
+                'real_name': equip_name,
+                'port_vip': v_port.port_vip,
+                'port_real': member.port_real,
+                'id_ip': ip_id
+            }
+
+            if real_raw not in reals_list:
+                reals_list.append(real_raw)
+
+            reals_priority.append(member.priority)
+            reals_weight.append(member.weight)
+
+    return vip_port_list, reals_list, reals_priority, reals_weight
