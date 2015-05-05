@@ -202,7 +202,7 @@ def get_by_pk(request, pk):
 
         data = facade.get_by_pk(pk)
 
-        return Response({'vip': data})
+        return Response(data)
 
     except exceptions.InvalidIdVipRequestException, exception:
         log.error(exception)
