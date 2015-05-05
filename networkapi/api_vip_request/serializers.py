@@ -73,7 +73,7 @@ class RequestVipSerializer(serializers.ModelSerializer):
 
     vip_ports_to_pools = VipPortToPoolSerializer(
         many=True,
-        required=False
+        required=True
     )
 
     finalidade = serializers.CharField(
