@@ -22,6 +22,19 @@ class VipPortToPoolSerializer(serializers.ModelSerializer):
             'port_vip',
         )
 
+    def validate_port_vip(self, attrs, attr_name):
+
+        try:
+            port_vip = int(attrs.get(attr_name, 0))
+
+            if port_vip > 65535 or 1 > port_vip:
+                raise serializers.ValidationError(u'The port number must be between 1 and 65535.')
+
+            return attrs
+
+        except ValueError:
+            raise serializers.ValidationError(u'The port must be a number.')
+
 
 class RequestVipSerializer(serializers.ModelSerializer):
 
