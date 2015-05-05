@@ -23,7 +23,6 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from networkapi.log import Log
-from networkapi.distributedlock import distributedlock, LOCK_VIP
 from networkapi.api_vip_request.permissions import Read, Write
 from networkapi.requisicaovips.models import ServerPool, VipPortToPool, \
     RequisicaoVips, RequisicaoVipsError
@@ -31,13 +30,10 @@ from networkapi.api_rest import exceptions as api_exceptions
 from networkapi.api_pools import exceptions as pool_exceptions
 from networkapi.api_vip_request import exceptions
 from networkapi.ambiente.models import EnvironmentVip, Ambiente
-from networkapi.api_vip_request.serializers import EnvironmentOptionsSerializer, \
-    RequestVipSerializer, VipPortToPoolSerializer
-from networkapi.equipamento.models import Equipamento, EquipamentoNotFoundError, \
-    EquipamentoError
-from networkapi.ip.models import IpNotFoundByEquipAndVipError
+from networkapi.api_vip_request.serializers import EnvironmentOptionsSerializer
 from networkapi.exception import InvalidValueError, EnvironmentVipNotFoundError
 from networkapi.api_vip_request import facade
+
 
 log = Log(__name__)
 

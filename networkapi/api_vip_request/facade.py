@@ -17,15 +17,15 @@
  limitations under the License.
  """
 from django.forms import model_to_dict
+
 from networkapi.distributedlock import distributedlock, LOCK_VIP
 from networkapi.log import Log
-from networkapi.ambiente.models import EnvironmentVip
 from networkapi.api_vip_request.serializers import RequestVipSerializer, VipPortToPoolSerializer
-from networkapi.equipamento.models import Equipamento
 from networkapi.requisicaovips.models import RequisicaoVips, VipPortToPool, ServerPool
 from networkapi.util import is_valid_int_greater_zero_param, convert_boolean_to_int
 from networkapi.api_vip_request import exceptions
 from networkapi.api_rest import exceptions as api_exceptions
+
 
 log = Log(__name__)
 
