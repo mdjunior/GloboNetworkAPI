@@ -1564,13 +1564,19 @@ class RequisicaoVips(BaseModel):
 
             healthcheck_obj = healthcheck_query.uniqueResult()        
 
-        except Exception, e:
-            #Falhou no healthcheck
-            #O codigo acima procura um HT ja existente, mas nao acha.
-            #Neste caso, é preciso criar um novo HT na tabela e usar este novo id.
-            #TODO - consertar valor para criar uma nova entrada de healthcheck
-            
-            healthcheck_obj = None
+        except ObjectDoesNotExist, e:
+            # If there is an equal healthcheck creates a new
+            healthcheck_obj = Healthcheck()
+            healthcheck_obj.healthcheck_type = healthcheck_type_upper
+            healthcheck_obj.healthcheck_request = healthcheck_request
+            healthcheck_obj.healthcheck_expect = healthcheck_expect
+            healthcheck_obj.healthcheck_request = healthcheck_request
+            healthcheck_obj.destination = '*:*'
+
+            #TODO: Definir logica para criação do identifier
+            #healthcheck_obj.identifier = None
+
+            healthcheck_obj.save(user)
     
         # Reals
         reals_map = vip_map.get('reals')
