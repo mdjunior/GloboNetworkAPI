@@ -112,6 +112,7 @@ def prepare_to_save_reals(ip_list_full, ports_reals, nome_equips, priorities, we
 
 def save_server_pool_member(user, sp, list_server_pool_member):
 
+    list_pool_member = list()
     # Remove empty values from list
     id_pool_member_noempty = [x['id_pool_member'] for x in list_server_pool_member if x['id_pool_member'] != '']
 
@@ -183,6 +184,10 @@ def save_server_pool_member(user, sp, list_server_pool_member):
             code, _, _ = exec_script(command)
             if code != 0:
                 raise exceptions.ScriptCreatePoolException()
+
+            list_pool_member.append(spm)
+
+    return list_pool_member
 
 
 def exec_script_check_poolmember_by_pool(pool_id):
