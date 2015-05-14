@@ -338,12 +338,13 @@ class VlanEditResource(RestResource):
 
             serializer = VlanSerializer(vlan)
             data_to_queue = serializer.data
-            data_to_queue.update({'description': queue_keys.VLAN_CREATE_ACL})
+            data_to_queue.update({'description': queue_keys.VLAN_CREATE_VLAN})
             queue_manager.append(data_to_queue)
 
             queue_manager.send()
 
             return self.response(dumps_networkapi({}))
+
         except InvalidValueError, e:
             return self.response_error(269, e.param, e.value)
         except AmbienteNotFoundError, e:
