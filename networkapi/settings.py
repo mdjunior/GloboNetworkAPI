@@ -306,9 +306,8 @@ VIP_REALS_v6_CHECK = 'gerador_vips -i %s --id_ipv6 %s --port_ip %s --port_vip %s
 ##################################
 #       QUEUE SETTINGS
 ##################################
-QUEUE_ROUTING = "networkapi_routing"
-QUEUE_EXCHANGE = "networkapi_exchange"
-QUEUE_BROKER_URL = "amqp://guest:guest@localhost:5672/%2F"
+QUEUE_DESTINATION = u"/topic/networkapi_queue"
+QUEUE_BROKER_URI = u"failover:(tcp://localhost:61613,tcp://server2:61613,tcp://server3:61613)?randomize=false"
 
 
 ###################################
