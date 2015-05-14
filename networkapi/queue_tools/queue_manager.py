@@ -20,9 +20,10 @@ import types
 
 import logging
 
-import pika
 
 from django.conf import settings
+from stompest.config import StompConfig
+from stompest.sync import Stomp
 
 
 LOGGER = logging.getLogger(__name__)
@@ -36,14 +37,13 @@ class QueueManager(object):
     def __init__(self):
         """
             Create a new instance QueueManager and initialize
-            with parameters of routing, exchange and connection
+            with parameters of destination and broker uri
             from settings or set default settings.
 
         """
         self._queue = []
-        self._api_routing_key = getattr(settings, 'QUEUE_ROUTING', None) or "networkapi_routing"
-        self._api_exchange = getattr(settings, 'QUEUE_EXCHANGE', None) or "networkapi_exchange"
-        self._url_parameters = getattr(settings, 'QUEUE_BROKER_URL', None) or "amqp://guest:guest@localhost:5672/%2F"
+        self._queue_destination = getattr(settings, 'QUEUE_DESTINATION', None) or "/topic/networkapi_queue"
+        self._broker_uri = getattr(settings, 'QUEUE_BROKER_URI', None) or "tcp://localhost:61613"
 
     def append(self, dict_obj):
         """
@@ -68,30 +68,23 @@ class QueueManager(object):
     def send(self):
 
         """
-            Open a new connection defining a channel,
+            Create a new stomp configuration client, connect and
             then serializes message by message posting
             them to your consumers in TOPIC standard
-            and closes the connection.
+            and disconnect.
         """
 
         try:
 
-            conn_parameters = pika.URLParameters(self._url_parameters)
-            connection = pika.BlockingConnection(conn_parameters)
-            channel = connection.channel()
-            channel.exchange_declare(exchange=self._api_exchange, type='topic')
+            configuration = StompConfig(uri=self._broker_uri)
+            client = Stomp(configuration)
+            client.connect()
 
             for message in self._queue:
-
                 serialized_message = json.dumps(message, ensure_ascii=False)
+                client.send(self._queue_destination, serialized_message)
 
-                channel.basic_publish(
-                    exchange=self._api_exchange,
-                    routing_key=self._api_routing_key,
-                    body=serialized_message
-                )
-
-            connection.close()
+            client.disconnect()
 
         except Exception, e:
             LOGGER.error(u"QueueManagerError - Error on sending objects from queue.")
