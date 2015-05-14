@@ -26,7 +26,7 @@ from networkapi.rest import RestResource
 from networkapi.util import is_valid_int_greater_zero_param, \
     destroy_cache_function
 from networkapi.vlan.models import TipoRede, NetworkTypeNotFoundError, VlanNotFoundError, Vlan, VlanError
-from networkapi.equipamento.models import EquipamentoAmbiente
+from networkapi.equipamento.models import EquipamentoAmbiente, TipoEquipamento
 from networkapi.exception import InvalidValueError, EnvironmentVipNotFoundError
 from networkapi.ambiente.models import EnvironmentVip, ConfigEnvironmentInvalidError, IP_VERSION, \
     Ambiente
@@ -331,12 +331,16 @@ class NetworkAddResource(RestResource):
             # environment
             ambiente = vlan.ambiente
 
+            filter = ambiente.filter
+            equipment_types = TipoEquipamento.objects.filter(filterequiptype__filter=filter)
+
             equips = list()
             envs = list()
             envs_aux = list()
 
-            for env in ambiente.equipamentoambiente_set.all():
-                equips.append(env.equipamento)
+            for env in ambiente.equipamentoambiente_set.all().exclude(
+                        equipamento__tipo_equipamento__in=equipment_types):
+                    equips.append(env.equipamento)
 
             for equip in equips:
                 for env in equip.equipamentoambiente_set.all():
@@ -344,40 +348,12 @@ class NetworkAddResource(RestResource):
                         envs.append(env.ambiente)
                         envs_aux.append(env.ambiente_id)
 
-            # Check subnet's
-            if version == IP_VERSION.IPv4[0]:
-                expl = split(net.network.exploded, ".")
-            else:
-                expl = split(net.network.exploded, ":")
-
-            expl.append(str(net.prefixlen))
-
-            ids_exclude = []
-            ids_all = []
-
             network_ip_verify = IPNetwork(network)
             for env in envs:
                 for vlan_obj in env.vlan_set.all():
-                    ids_all.append(vlan_obj.id)
-                    is_subnet = verify_subnet(
-                        vlan_obj, network_ip_verify, version)
-
-                    if not is_subnet:
-                        ids_exclude.append(vlan_obj.id)
-                    else:
-                        if ambiente.filter_id == None or vlan_obj.ambiente.filter_id == None or int(vlan_obj.ambiente.filter_id) != int(ambiente.filter_id):
-                            pass
-                        else:
-                            ids_exclude.append(vlan_obj.id)
-
-            # Ignore actual vlan
-            if envs != [] and long(id_vlan) not in ids_exclude:
-                ids_exclude.append(id_vlan)
-
-            # Check if have duplicated vlan's with same net range in an
-            # environment with shared equipment
-            if len(ids_all) != len(ids_exclude):
-                raise NetworkIPRangeEnvError(None)
+                    is_subnet = verify_subnet(vlan_obj, network_ip_verify, version)
+                    if is_subnet:
+                        raise NetworkIPRangeEnvError(None)
 
             # Set Vlan
             network_ip.vlan = vlan

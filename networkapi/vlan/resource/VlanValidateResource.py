@@ -18,7 +18,8 @@
 from __future__ import with_statement
 from networkapi.admin_permission import AdminPermission
 from networkapi.auth import has_perm
-from networkapi.exception import InvalidValueError
+from networkapi.equipamento.models import TipoEquipamento
+from networkapi.exception import InvalidValueError, BreakLoops
 from networkapi.infrastructure.xml_utils import dumps_networkapi, loads
 from networkapi.log import Log
 from networkapi.rest import RestResource, UserNotAuthorizedError
@@ -36,7 +37,7 @@ class VlanValidateResource(RestResource):
     log = Log('VlanValidateResource')
 
     def handle_put(self, request, user, *args, **kwargs):
-        '''Treat PUT requests to Validate a vlan 
+        '''Treat PUT requests to Validate a vlan
 
         URL: vlan/<id_vlan>/validate/<network>
         '''
@@ -106,11 +107,11 @@ class VlanValidateResource(RestResource):
 
             if ip_version == 'None':
                 is_number = True
-                number = kwargs.get('number')
+                number = str(kwargs.get('number'))
                 id_environment = kwargs.get('id_environment')
             else:
                 network = kwargs.get('number')
-                network = network.replace('net_replace', '/')
+                network = str(network.replace('net_replace', '/'))
                 id_vlan = kwargs.get('id_environment')
                 if ip_version == '1':
                     version = 'v6'
@@ -128,7 +129,6 @@ class VlanValidateResource(RestResource):
 
             if is_number:
                 # Valid number
-
                 if not is_valid_int_greater_zero_param(id_environment):
                     self.log.error(
                         u'Parameter id_environment is invalid. Value: %s.', id_environment)
@@ -154,17 +154,20 @@ class VlanValidateResource(RestResource):
                 map = dict()
                 map['needs_confirmation'] = True
 
-                for env in envs:
-                    for vlan in env.vlan_set.all():
-                        if int(vlan.num_vlan) == int(number):
-                            if ambiente.filter_id == None or vlan.ambiente.filter_id == None or int(vlan.ambiente.filter_id) != int(ambiente.filter_id):
-                                map['needs_confirmation'] = False
-                            else:
-                                map['needs_confirmation'] = True
-                                break
-            else:
-                # Valid subnet
+                try:
+                    for env in envs:
+                        for vlan in env.vlan_set.all():
+                            if int(vlan.num_vlan) == int(number):
+                                if ambiente.filter_id == None or vlan.ambiente.filter_id == None or int(vlan.ambiente.filter_id) != int(ambiente.filter_id):
+                                    map['needs_confirmation'] = False
+                                else:
+                                    raise BreakLoops()
+                except BreakLoops, e:
+                    map['needs_confirmation'] = True
 
+            else:
+
+                # Valid subnet
                 if not is_valid_int_greater_zero_param(id_vlan):
                     self.log.error(
                         u'Parameter id_vlan is invalid. Value: %s.', id_vlan)
@@ -176,11 +179,15 @@ class VlanValidateResource(RestResource):
                 vlan = vlan.get_by_pk(id_vlan)
                 ambiente = vlan.ambiente
 
+                filter = ambiente.filter
+                equipment_types = TipoEquipamento.objects.filter(filterequiptype__filter=filter)
+
                 equips = list()
                 envs = list()
                 envs_aux = list()
 
-                for env in ambiente.equipamentoambiente_set.all():
+                for env in ambiente.equipamentoambiente_set.all().exclude(
+                        equipamento__tipo_equipamento__in=equipment_types):
                     equips.append(env.equipamento)
 
                 for equip in equips:
@@ -190,48 +197,17 @@ class VlanValidateResource(RestResource):
                             envs_aux.append(env.ambiente_id)
 
                 # Check subnet's
-                network = str(network)
-                prefix = split(network, "/")
-                net_explode = prefix[0]
-
-                if version == IP_VERSION.IPv4[0]:
-                    expl = split(net_explode, ".")
-                else:
-                    expl = split(net_explode, ":")
-
-                expl.append(str(prefix[1]))
-
-                ids_exclude = []
-                ids_all = []
-
                 network_ip_verify = IPNetwork(network)
-                for env in envs:
-                    for vlan_obj in env.vlan_set.all():
-                        ids_all.append(vlan_obj.id)
-                        is_subnet = verify_subnet(
-                            vlan_obj, network_ip_verify, version)
 
-                        if not is_subnet:
-                            ids_exclude.append(vlan_obj.id)
-                        else:
-                            if ambiente.filter_id == None or vlan_obj.ambiente.filter_id == None or int(vlan_obj.ambiente.filter_id) != int(ambiente.filter_id):
-                                pass
-                            else:
-                                ids_exclude.append(vlan_obj.id)
-
-                                # Valid number
                 map = dict()
-                map['needs_confirmation'] = True
-
-                # Ignore actual vlan
-                if envs != [] and long(id_vlan) not in ids_exclude:
-                    ids_exclude.append(id_vlan)
-
-                # Check if have duplicated vlan's with same net range in an
-                # environment with shared equipment
-                if len(ids_all) != len(ids_exclude):
-                    map['needs_confirmation'] = False
-                else:
+                map['needs_confirmation'] = False
+                try:
+                    for env in envs:
+                        for vlan_obj in env.vlan_set.all():
+                            is_subnet = verify_subnet(vlan_obj, network_ip_verify, version)
+                            if is_subnet:
+                                raise BreakLoops()
+                except BreakLoops, e:
                     map['needs_confirmation'] = True
 
             # Return XML

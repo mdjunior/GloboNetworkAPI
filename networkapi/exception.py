@@ -124,3 +124,11 @@ class NetworkInactiveError(CustomException):
 
     def __init__(self, cause=u'Unable to remove the network because it is inactive.', message=None):
         CustomException.__init__(self, cause, message)
+
+
+class BreakLoops(CustomException):
+
+    """Returns exception for break loops"""
+
+    def __init__(self, cause=u'Break all loops.', message=None):
+        CustomException.__init__(self, cause, message)
