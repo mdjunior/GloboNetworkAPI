@@ -180,15 +180,14 @@ Integrate with Queue
 
 Install Dependencies::
 
-	sudo yum install rabbitmq-server
+	Apache ActiveMQ
 
-RabbitMQ is a messaging broker - an intermediary for messaging. It gives your applications a common platform to send and receive messages, and your messages a safe place to live until received. For details on RabbitMQ, check `RabbitMQ Documentation <https://www.rabbitmq.com/documentation.html>`_.
+Apache ActiveMQ ™ is the most popular and powerful open source messaging and Integration Patterns server. `Apache ActiveMQ Getting Started <http://activemq.apache.org/getting-started.html>`_.
 
 Example configuration on ``settings.py``::
 
-	QUEUE_ROUTING = "<routing name>"
-	QUEUE_EXCHANGE = "<exchange_name>"
-	QUEUE_BROKER_URL = "amqp://<user>:<pass>@<host>:<port>/<virtualhost>"
+	QUEUE_DESTINATION = "/topic/queue_name"
+	QUEUE_BROKER_URI = "failover:(tcp://localhost:61613,tcp://server2:61613)?randomize=false"
 
 Usage::
 
