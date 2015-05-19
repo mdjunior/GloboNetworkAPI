@@ -106,7 +106,6 @@ class NetworkAddResource(RestResource):
             net_type = TipoRede.get_by_pk(network_type)
 
             # Environment Vip
-
             if environment_vip is not None:
 
                 # Valid environment_vip ID
@@ -337,21 +336,26 @@ class NetworkAddResource(RestResource):
             equips = list()
             envs = list()
             envs_aux = list()
-
+            #Get all equipments from the environment being tested
+            #that are not supposed to be filtered
+            #(not the same type of the equipment type of a filter of the environment)
             for env in ambiente.equipamentoambiente_set.all().exclude(
                         equipamento__tipo_equipamento__in=equipment_types):
                     equips.append(env.equipamento)
 
+            #Get all environment that the equipments above are included
             for equip in equips:
                 for env in equip.equipamentoambiente_set.all():
                     if not env.ambiente_id in envs_aux:
                         envs.append(env.ambiente)
                         envs_aux.append(env.ambiente_id)
 
-            network_ip_verify = IPNetwork(network)
+            #Check in all vlans from all environments above
+            #if there is a network that is sub or super network of the current
+            #network being tested
             for env in envs:
                 for vlan_obj in env.vlan_set.all():
-                    is_subnet = verify_subnet(vlan_obj, network_ip_verify, version)
+                    is_subnet = verify_subnet(vlan_obj, net, version)
                     if is_subnet:
                         raise NetworkIPRangeEnvError(None)
 
@@ -473,7 +477,10 @@ class NetworkAddResource(RestResource):
             return self.response_error(3, e)
 
 
-def verify_subnet(vlan, network_ip, version):
+def verify_subnet(vlan, network, version):
+
+    from networkapi.infrastructure.ipaddr import IPNetwork
+
     if version == IP_VERSION.IPv4[0]:
         vlan_net = vlan.networkipv4_set.all()
     else:
@@ -481,7 +488,6 @@ def verify_subnet(vlan, network_ip, version):
 
     # One vlan may have many networks, iterate over it
     for net in vlan_net:
-
         if version == IP_VERSION.IPv4[0]:
             ip = "%s.%s.%s.%s/%s" % (net.oct1,
                                      net.oct2, net.oct3, net.oct4, net.block)
@@ -491,16 +497,10 @@ def verify_subnet(vlan, network_ip, version):
 
         ip_net = IPNetwork(ip)
         # If some network, inside this vlan, is subnet of network search param
-        if ip_net in network_ip:
-            # This vlan must be in vlans founded, dont need to continue
-            # checking
-            return True
-        # If some network, inside this vlan, is supernet of network search
-        # param
-        if network_ip in ip_net:
-            # This vlan must be in vlans founded, dont need to continue
+        if ip_net in network or network in ip_net:
+            # This vlan must be in vlans founded, don't need to continue
             # checking
             return True
 
-    # If dont found any subnet return None
+    # If don't found any subnet return False
     return False
