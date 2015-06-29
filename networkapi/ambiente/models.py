@@ -1106,3 +1106,17 @@ class ConfigEnvironment(BaseModel):
             self.log.error(u'Error saving ConfigEnvironment: %r' % str(e))
             raise ConfigEnvironmentDuplicateError(
                 e, u'Error saving duplicate Environment Configuration.')
+
+class EvipEnvRelationship(BaseModel):
+
+    id = models.AutoField(primary_key=True, db_column='id_ambiente_ambientevip')
+    ambiente = models.ForeignKey(Ambiente, db_column='id_ambiente')
+    ambienteVip = models.ForeignKey(EnvironmentVip, db_column='id_ambientevip')
+
+    class Meta(BaseModel.Meta):
+        db_table = u'relacao_ambientevip_ambiente'
+        managed = True
+        unique_together = ('id_ambientevip, id_ambiente')
+
+
+    #def insert_new(self, authenticated_user):#

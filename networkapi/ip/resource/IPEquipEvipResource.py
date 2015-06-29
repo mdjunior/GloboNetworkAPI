@@ -79,7 +79,7 @@ class IPEquipEvipResource(RestResource):
                 raise InvalidValueError(None, 'equip_name', equip_name)
 
             # Business Rules
-
+####################################################################################
             # Get Environment VIp
             evip = EnvironmentVip.get_by_pk(id_evip)
             # Get Equipment
@@ -180,7 +180,7 @@ class IPEquipEvipResource(RestResource):
                     None, 'Ip não encontrado com equipamento %s e ambiente vip %s' % (equip_name, id_evip))
 
             return self.response(dumps_networkapi({"ipv4": lista_ip_entregue, "ipv6": lista_ip6_entregue}))
-
+######################################################################################################
         except IpNotFoundByEquipAndVipError:
             return self.response_error(317, equip_name, id_evip)
         except InvalidValueError, e:

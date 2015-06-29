@@ -141,7 +141,7 @@ class NetworkAddResource(RestResource):
                 raise InvalidValueError(None, 'rede', network)
 
             # Business Rules
-
+#################################################################################
             if version == IP_VERSION.IPv4[0]:
 
                 # Find all networks related to environment
@@ -172,7 +172,7 @@ class NetworkAddResource(RestResource):
                     if net in networks:
                         raise NetworkIpAddressNotAvailableError(
                             None, u'Unavailable address to create a NetworkIPv4.')
-
+#################################################################################### Validação ambiente/ambiente_vip ipv4
                 # # Filter case 1 - Adding new network with same ip range to another network on other environment ##
                 # Get environments with networks with the same ip range
                 nets = NetworkIPv4.objects.filter(
@@ -235,7 +235,7 @@ class NetworkAddResource(RestResource):
                     net.netmask).split('.')
                 # Set broadcast by network generated
                 network_ip.broadcast = net.broadcast
-
+############################################################## Validação ambiente/ambiente_vip ipv6
             else:
                 # Find all networks ralated to environment
                 nets = NetworkIPv6.objects.select_related().filter(
@@ -326,7 +326,7 @@ class NetworkAddResource(RestResource):
                 # Set mask by network generated
                 network_ip.mask1, network_ip.mask2, network_ip.mask3, network_ip.mask4, network_ip.mask5, network_ip.mask6, network_ip.mask7, network_ip.mask8 = str(
                     net.netmask.exploded).split(':')
-
+#################################################################################
             # Get all vlans environments from equipments of the current
             # environment
             ambiente = vlan.ambiente
@@ -371,7 +371,7 @@ class NetworkAddResource(RestResource):
                             ids_exclude.append(vlan_obj.id)
 
             # Ignore actual vlan
-            if envs != [] and long(id_vlan) not in ids_exclude:
+            if envs != [] and longd_vlan not in ids_exclude:
                 ids_exclude.append(id_vlan)
 
             # Check if have duplicated vlan's with same net range in an
