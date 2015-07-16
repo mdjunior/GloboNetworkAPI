@@ -314,7 +314,7 @@ error_messages = {
     386: u'Não foi possível excluir a rede %s pois o ip %s contido nela esta sendo usado nos Server Pools (id:identifier) %s.',
     387: u'Não foi possível excluir a vlan %s pois ela possui a rede %s e essa rede possui o ip %s contido nela, e esse ip esta sendo usado nos Server Pools (id:identifier) %s.',
     389: u'Não foi possível excluir o vip %s pois o ip %s do mesmo esta sendo usado nos Server Pools (id:identifier) %s.',
-    390: u'Não foi possível excluir o vip %s pois os seguintes vips %s estão usando o mesmo ip %s.',
+    390: u'Não foi possível excluir o equipamento %s pois ele possui os ips %s e esses ips estão relacionados com server pools.',
 }
 
 

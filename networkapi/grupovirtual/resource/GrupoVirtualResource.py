@@ -23,7 +23,7 @@ from networkapi.equipamento.models import Equipamento, EquipamentoError, Equipam
     ModeloNotFoundError, EquipamentoNameDuplicatedError, TipoEquipamentoNotFoundError
 from networkapi.equipamento.resource.EquipamentoResource import insert_equipment, remove_equipment
 from networkapi.ip.models import IpError, IpEquipmentNotFoundError, IpNotAvailableError, IpNotFoundError, IpEquipamentoDuplicatedError, \
-    IpNotFoundByEquipAndVipError
+    IpNotFoundByEquipAndVipError, IpCantBeRemovedFromVip
 from networkapi.ip.resource.IpResource import insert_ip, insert_ip_equipment, remove_ip_equipment
 from networkapi.vlan.models import VlanNotFoundError, VlanError
 from networkapi.grupo.models import GrupoError, EGrupoNotFoundError
@@ -150,8 +150,11 @@ class GroupVirtualResource(RestResource):
             return self.not_authorized()
         except ScriptError, s:
             return self.response_error(2, s)
-        except (IpError, EquipamentoError, GrupoError, RequisicaoVipsError):
+        except IpCantBeRemovedFromVip, error:
+            return self.response_error(390, error.cause.get('equip_name'), error.cause.get('ip_list'))
+        except (IpError, EquipamentoError, GrupoError, RequisicaoVipsError), error:
             return self.response_error(1)
+
 
     def __treat_response_error(self, response):
         '''Trata as repostas de erro no formato de uma tupla.

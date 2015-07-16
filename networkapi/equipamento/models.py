@@ -698,14 +698,27 @@ class Equipamento(BaseModel):
         ipv4_error = ""
         ipv6_error = ""
 
+        equip_name = ''
+
+        ipv4_list = []
+        equip_ipv4_dict = {}
+
+        ipv6_list = []
+        equip_ipv6_dict = {}
+
         for ip_equipment in self.ipequipamento_set.all():
             try:
                 ip = ip_equipment.ip
                 ip_equipment.delete(authenticated_user)
             except Exception, e:
                 is_error = True
-                ipv4_error += " %s.%s.%s.%s - Vip %s ," % (
-                    ip.oct1, ip.oct2, ip.oct3, ip.oct4, e.cause)
+                ipv4_error += " %s.%s.%s.%s - Vip %s ," % (ip.oct1, ip.oct2, ip.oct3, ip.oct4, e.cause)
+
+                equip_name = e.cause.get('equip_name')
+                ipv4_list.append(e.cause.get('ip'))
+
+        equip_ipv4_dict['equip_name'] = equip_name
+        equip_ipv4_dict['ip_list'] = ', '.join(ipv4_list)
 
         for ip_v6_equipment in self.ipv6equipament_set.all():
 
@@ -717,8 +730,14 @@ class Equipamento(BaseModel):
                 ipv6_error += " %s:%s:%s:%s:%s:%s:%s:%s - Vip %s ," % (
                     ip.block1, ip.block2, ip.block3, ip.block4, ip.block5, ip.block6, ip.block7, ip.block8, e.cause)
 
+                equip_name = e.cause.get('equip_name')
+                ipv6_list.append(e.cause.get('ip'))
+
+        equip_ipv6_dict['equip_name'] = equip_name
+        equip_ipv6_dict['ip_list'] = ', '.join(ipv6_list)
+
         if is_error:
-            raise IpCantBeRemovedFromVip(ipv4_error, ipv6_error)
+            raise IpCantBeRemovedFromVip(equip_ipv4_dict, equip_ipv6_dict)
 
         for equipment_access in self.equipamentoacesso_set.all():
             equipment_access.delete(authenticated_user)
