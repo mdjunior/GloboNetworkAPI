@@ -1306,7 +1306,7 @@ class IpEquipamento(BaseModel):
 
         try:
             ip_equipamento.delete(authenticated_user)
-        except (IpCantBeRemovedFromVip, IpEquipCantDissociateFromVip), e:
+        except (IpCantBeRemovedFromVip, IpEquipCantDissociateFromVip, IpCantRemoveFromServerPool), e:
             raise e
         except Exception, e:
             self.log.error(u'Falha ao remover um ip_equipamento.')
